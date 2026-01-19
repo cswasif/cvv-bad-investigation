@@ -1,0 +1,62 @@
+name: HS-CVV-Experiment
+on: [push, workflow_dispatch]
+jobs:
+  attack-hyperswitch:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: hyperswitch_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Start Hyperswitch (Docker)
+        run: |
+          docker run -d \
+            --name hyperswitch \
+            --network host \
+            -e MASTER_DATABASE_URL=postgres://postgres:password@localhost:5432/hyperswitch_db \
+            -e REDIS_URL=redis://localhost:6379 \
+            juspay/hyperswitch:latest
+            
+      - name: Wait for Service
+        run: sleep 15
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          
+      - name: Install Deps
+        run: pip install requests
+        
+      - name: Run Exp C (Null Bypass)
+        env:
+          TARGET_URL: http://localhost:8080/payments
+        continue-on-error: true
+        run: python cvv_bypass_null.py
+        
+      - name: Run Exp A (Enumeration)
+        env:
+          TARGET_URL: http://localhost:8080/payments
+        continue-on-error: true
+        run: python cvv_enumerator.py
