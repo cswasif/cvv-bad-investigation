@@ -36,10 +36,11 @@ jobs:
             --network host \
             -e MASTER_DATABASE_URL=postgres://postgres:password@localhost:5432/hyperswitch_db \
             -e REDIS_URL=redis://localhost:6379 \
-            juspay/hyperswitch:latest
+            -e HYPERSWITCH_SECRETS_MANAGEMENT_MASTER_KEY=4b8E52F6B8F74D2E8E01633F54687265696E7336756C6C2664306E3743683363 \
+            jyotishp/hyperswitch:v1
             
       - name: Wait for Service
-        run: sleep 15
+        run: sleep 45
         
       - name: Set up Python
         uses: actions/setup-python@v4
